@@ -1,4 +1,4 @@
-alert("Use Left-Right-Up-Down keys to controll the snake!");
+// alert("Use Left-Right-Up-Down keys to controll the snake!");
 
 let canvas = document.querySelector("canvas");
 canvas.width = canvas.height = innerWidth > innerHeight ? innerHeight * 0.8 : innerWidth * 0.8;
@@ -10,7 +10,7 @@ let score = document.querySelector(".score");
 // Varaibles
 let snake;
 let bait;
-const CN = 30; // 20 is the colomns number
+const CN = 30; // 30 is the colomns number
 let speed = 4;
 let counter;
 let headPos;
@@ -20,7 +20,7 @@ let isWinner;
 let coords;
 let maxLength;
 let currentScore;
-let volume = 1.1;
+let volume = 0.9;
 
 addEventListener("resize", reset, true);
 
@@ -63,7 +63,7 @@ function Snake() {
     this.update = () => {
         coords = [];
 
-        if (counter++ % speed === 0) {
+        if (counter % speed === 0) {
             headPos = Object.assign({}, this);
 
             changeDirection();
@@ -79,44 +79,45 @@ function Snake() {
             }
 
             coords.push(`(${this.gx},${this.gy})`);
-
-            this.body.forEach((p, i) => {
-                if (distanceBetween(this, p) === 0) {
-                    isGameOver = true;
-                }
-                if (i === 0) {
-                    bodyPos = Object.assign({}, p);
-                    p.gx = headPos.gx;
-                    p.gy = headPos.gy;
-                } else {
-                    let a = Object.assign({}, p);
-                    p.gx = bodyPos.gx;
-                    p.gy = bodyPos.gy;
-                    bodyPos = Object.assign({}, a);
-                }
-
-                coords.push(`(${p.gx},${p.gy})`);
-            });
-
-            if (this.gx === CN) this.gx = 1;
-            else if (this.gx === 0) this.gx = CN - 1;
-            else if (this.gy === CN) this.gy = 1;
-            else if (this.gy === 0) this.gy = CN - 1;
-
-            if (coords.length === maxLength) {
-                isWinner = true;
-            }
-
-            updateScore();
-
-            counter = 1;
         }
 
-        this.body.forEach(p => {
+        this.body.forEach((p, i) => {
+            if (counter % speed === 0) {
+              if (distanceBetween(this, p) === 0) {
+                  isGameOver = true;
+              }
+              if (i === 0) {
+                  bodyPos = Object.assign({}, p);
+                  p.gx = headPos.gx;
+                  p.gy = headPos.gy;
+              } else {
+                  let a = Object.assign({}, p);
+                  p.gx = bodyPos.gx;
+                  p.gy = bodyPos.gy;
+                  bodyPos = Object.assign({}, a);
+              }
+
+              coords.push(`(${p.gx},${p.gy})`);
+            }
             p.draw();
         });
 
+        if(counter % speed === 0) {
+          if (this.gx === CN) this.gx = 1;
+          else if (this.gx === 0) this.gx = CN - 1;
+          else if (this.gy === CN) this.gy = 1;
+          else if (this.gy === 0) this.gy = CN - 1;
+
+          if (coords.length === maxLength) {
+              isWinner = true;
+          }
+
+          updateScore();
+        }
+
         this.draw();
+
+        counter++;
     };
 }
 
@@ -198,10 +199,10 @@ function reset() {
     canvas.width = canvas.height = innerWidth > innerHeight ? innerHeight * 0.8 : innerWidth * 0.8;
 
     bait.n = Math.floor((canvas.width / CN) / 2);
-    snake.n = Math.floor(canvas.width / CN);
+    snake.n = Math.floor(canvas.width / CN) * volume;
 
     snake.body.forEach(p => {
-        p.n = Math.floor(canvas.width / CN);
+        p.n = Math.floor(canvas.width / CN) * volume;
     });
 
     updateScorePosition();
