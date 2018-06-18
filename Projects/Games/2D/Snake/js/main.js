@@ -1,131 +1,254 @@
+alert("Use Left-Right-Up-Down keys to controll the snake!");
+
 let canvas = document.querySelector("canvas");
-canvas.width = innerWidth;
-canvas.height = innerHeight;
+canvas.width = canvas.height = innerWidth > innerHeight ? innerHeight * 0.8 : innerWidth * 0.8;
 
 let c = canvas.getContext("2d");
 
+let score = document.querySelector(".score");
+
 // Varaibles
-let bubbles;
-const BUBBLES_NUMBER = 500;
-let bubblesColor = [
-  "rgb(80, 81, 79)",
-  "rgb(242, 95, 92)",
-  "rgb(36, 123, 160)",
-  "rgb(112, 193, 179)",
-  "rgb(1, 22, 39)",
-  "rgb(113, 46, 133)",
-  "rgb(46, 196, 182)",
-  "rgb(231, 29, 54)",
-  "rgb(2, 51, 68)",
-  "rgb(0, 89, 89)",
-  "rgb(0, 126, 167)",
-  "rgb(0, 168, 232)"
-];
+let snake;
+let bait;
+const CN = 30; // 20 is the colomns number
+let speed = 4;
+let counter;
+let headPos;
+let bodyPos;
+let isGameOver;
+let isWinner;
+let coords;
+let maxLength;
+let currentScore;
+let volume = 1.1;
 
-addEventListener("resize", () => {
-  init()
-});
+addEventListener("resize", reset, true);
 
-let mouse = {};
-let isMouseOut = false;
-addEventListener("mousemove", e => {
-  mouse.x = e.offsetX;
-  mouse.y = e.offsetY;
-  isMouseOut = false;
-})
-
-addEvent(document, "mouseout", function(e) {
-    e = e ? e : window.event;
-    var from = e.relatedTarget || e.toElement;
-    if (!from || from.nodeName == "HTML") {
-        isMouseOut = true;
-    }
-    else {
-      isMouseOut = false;
+let keys = ["Right", "Left", "Up", "Down"];
+let key = keys[getRandomInt(0, keys.length)];
+addEventListener("keydown", e => {
+    if (e.keyCode >= 37 && e.keyCode <= 40) {
+        key = e.key.slice(5);
     }
 });
 
-function Bubble() {
-  this.radius = getRandom(2, 4);
-  this.x = getRandom(this.radius, canvas.width - this.radius);
-  this.y = getRandom(this.radius, canvas.height - this.radius);
-  this.dx = getRandom(-1, 1);
-  this.dy = getRandom(-1, 1);
-  this.color = bubblesColor[Math.floor(getRandom(0, bubblesColor.length))];
-  this.radiusBackUp = this.radius;
+function SnakeBody(gx, gy) {
+    this.gx = gx;
+    this.gy = gy;
+    this.n = Math.floor(canvas.width / CN) * volume;
+    this.color = "#1b3104";
 
-  this.draw = () => {
-    c.beginPath();
-    c.fillStyle = this.color;
-    c.arc(this.x, this.y, this.radius, 0, Math.PI * 2, true);
-    c.fill();
-    c.closePath();
-  };
-
-  this.update = () => {
-    this.x += this.dx;
-    this.y += this.dy;
-
-    if(this.x >= canvas.width - this.radius || this.x <= this.radius) {
-      this.dx *= -1;
-    }
-
-    if(this.y >= canvas.height - this.radius || this.y <= this.radius) {
-      this.dy *= -1;
-    }
-
-    if(distanceBetween(this.x, this.y, mouse.x, mouse.y) <= 100 && this.radius <= 100 && !isMouseOut) {
-      this.radius += 1.25;
-    }
-    else if(this.radius > this.radiusBackUp) {
-      this.radius -= 0.25;
-    }
-
-    this.draw();
-  }
+    this.draw = () => {
+        c.fillStyle = this.color;
+        c.fillRect(canvas.width / CN * this.gx - this.n / 2, canvas.height / CN * this.gy - this.n / 2, this.n, this.n);
+        c.fill();
+    };
 }
 
+function Snake() {
+    this.gx = getRandomInt(1, CN);
+    this.gy = getRandomInt(1, CN);
+    this.n = Math.floor(canvas.width / CN) * volume;
+    this.s = 1;
+    this.color = "#1b3104";
+    this.dir = key;
+    this.body = [];
+
+    this.draw = () => {
+        c.fillStyle = this.color;
+        c.fillRect(canvas.width / CN * this.gx - this.n / 2, canvas.height / CN * this.gy - this.n / 2, this.n, this.n);
+        c.fill();
+    };
+
+    this.update = () => {
+        coords = [];
+
+        if (counter++ % speed === 0) {
+            headPos = Object.assign({}, this);
+
+            changeDirection();
+
+            if (this.dir === "Right") {
+                this.gx += this.s;
+            } else if (this.dir === "Left") {
+                this.gx -= this.s;
+            } else if (this.dir === "Up") {
+                this.gy -= this.s;
+            } else {
+                this.gy += this.s;
+            }
+
+            coords.push(`(${this.gx},${this.gy})`);
+
+            this.body.forEach((p, i) => {
+                if (distanceBetween(this, p) === 0) {
+                    isGameOver = true;
+                }
+                if (i === 0) {
+                    bodyPos = Object.assign({}, p);
+                    p.gx = headPos.gx;
+                    p.gy = headPos.gy;
+                } else {
+                    let a = Object.assign({}, p);
+                    p.gx = bodyPos.gx;
+                    p.gy = bodyPos.gy;
+                    bodyPos = Object.assign({}, a);
+                }
+
+                coords.push(`(${p.gx},${p.gy})`);
+            });
+
+            if (this.gx === CN) this.gx = 1;
+            else if (this.gx === 0) this.gx = CN - 1;
+            else if (this.gy === CN) this.gy = 1;
+            else if (this.gy === 0) this.gy = CN - 1;
+
+            if (coords.length === maxLength) {
+                isWinner = true;
+            }
+
+            updateScore();
+
+            counter = 1;
+        }
+
+        this.body.forEach(p => {
+            p.draw();
+        });
+
+        this.draw();
+    };
+}
+
+function Bait() {
+    this.n = Math.floor((canvas.width / CN) / 2);
+    this.gx = getRandomInt(1, CN);
+    this.gy = getRandomInt(1, CN);
+    this.color = "#1b3104";
+
+    this.init = () => {
+        while (coords.indexOf(`(${this.gx},${this.gy})`) !== -1 && coords.length !== maxLength) {
+            this.gx = getRandomInt(1, CN);
+            this.gy = getRandomInt(1, CN);
+        }
+    };
+
+    this.draw = () => {
+        c.fillStyle = this.color;
+        c.fillRect(canvas.width / CN * this.gx - this.n / 2, canvas.height / CN * this.gy - this.n / 2, this.n, this.n);
+        c.fill();
+    };
+
+    this.update = () => {
+        if (coords.length !== maxLength) {
+            this.draw();
+        }
+    };
+
+    this.init();
+}
+
+// function Grid() {
+//   this.color = "rgba(255, 255, 255, 0.25)";
+//
+//   this.draw = () => {
+//     c.beginPath();
+//     c.strokeStyle = this.color;
+//     c.lineWidth = 0.5;
+//     for (var i = 1; i < CN; i++) {
+//       c.moveTo(canvas.width / CN * i, 0);
+//       c.lineTo(canvas.width / CN * i, canvas.height);
+//       c.moveTo(0 , canvas.height / CN * i);
+//       c.lineTo(canvas.width, canvas.height / CN * i);
+//     }
+//     c.stroke();
+//     c.closePath();
+//   };
+// }
+
 function init() {
-  canvas.width = innerWidth;
-  canvas.height = innerHeight;
+    currentScore = 0;
+    isGameOver = false;
+    isWinner = false;
+    coords = [];
+    maxLength = Math.pow(CN - 1, 2);
+    counter = 0;
 
-  bubbles = [];
-
-  for (var i = 0; i < BUBBLES_NUMBER; i++) {
-    bubbles.push(new Bubble());
-  }
+    snake = new Snake();
+    // grid = new Grid();
+    bait = new Bait();
 }
 init();
 
 function animate() {
-  requestAnimationFrame(animate);
+    if (isGameOver) newGame("GameOver!");
+    else if (isWinner) newGame("You've won!");
+    else requestAnimationFrame(animate);
 
-  clearCanvas("#fff");
+    clearCanvas("#98c807");
 
-  bubbles.forEach(bubble => {
-    bubble.update()
-  });
+    // grid.draw();
+    bait.update();
+
+    snake.update();
 }
 animate();
 
+function reset() {
+    canvas.width = canvas.height = innerWidth > innerHeight ? innerHeight * 0.8 : innerWidth * 0.8;
+
+    bait.n = Math.floor((canvas.width / CN) / 2);
+    snake.n = Math.floor(canvas.width / CN);
+
+    snake.body.forEach(p => {
+        p.n = Math.floor(canvas.width / CN);
+    });
+
+    updateScorePosition();
+}
+
 function clearCanvas(color) {
-  c.fillStyle = color;
-  c.fillRect(0, 0, canvas.width, canvas.height);
+    c.fillStyle = color;
+    c.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-function getRandom(min, max) {
-  return Math.random() * (max - min) + min;
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min) + min);
 }
 
-function distanceBetween(x1, y1, x2, y2) {
-  return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2))
+function distanceBetween(o1, o2) {
+    return Math.sqrt(Math.pow(o1.gx - o2.gx, 2) + Math.pow(o1.gy - o2.gy, 2));
 }
 
-function addEvent(obj, evt, fn) {
-    if (obj.addEventListener) {
-        obj.addEventListener(evt, fn, false);
+function updateScorePosition() {
+    score.style.left = canvas.getBoundingClientRect().left + "px";
+    score.style.bottom = canvas.getBoundingClientRect().bottom + "px";
+}
+updateScorePosition();
+
+function updateScore() {
+    if (!distanceBetween(snake, bait)) {
+        bait = new Bait();
+
+        currentScore++;
+        score.innerHTML = '0'.repeat(4 - currentScore.toString().length) + currentScore;
+
+        snake.body.push(new SnakeBody(snake.gx, snake.gy));
     }
-    else if (obj.attachEvent) {
-        obj.attachEvent("on" + evt, fn);
+}
+
+function changeDirection() {
+    if (key === "Right" && snake.dir !== "Left") snake.dir = key;
+    else if (key === "Left" && snake.dir !== "Right") snake.dir = key;
+    else if (key === "Up" && snake.dir !== "Down") snake.dir = key;
+    else if (key === "Down" && snake.dir !== "Up") snake.dir = key;
+}
+
+function newGame(msg) {
+    alert(msg);
+    if (confirm("Wanna play again ?")) {
+        init();
+        reset();
+        animate();
     }
 }

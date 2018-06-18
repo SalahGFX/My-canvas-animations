@@ -1,4 +1,29 @@
+@font-face {
+    font-family: "pixel";
+    src: url("../assets/fonts/pixel.ttf");
+}
+html, body{
+  height: 100%;
+}
 body {
   margin: 0;
   display: flex;
+  background: #98c807;
+  justify-content: center;
+  align-items: center;
 }
+ canvas {
+   border: 1vw dashed #1b3104;
+ }
+
+ .score {
+   width: 80px;
+   height: 40px;
+   position: absolute;
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   font-size: 2rem;
+   font-family: "pixel";
+   color: #1b3104;
+ }
